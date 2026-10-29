@@ -371,33 +371,7 @@ BlogVerification::VERSION
 
 ---
 
-### Step 7: Push the Gem to RubyGems.org
-
-Publish your gem to the global Ruby community with:
-
-```bash
-gem push blog_verification-1.0.0.gem
-```
-
-If your account has MFA enabled, you will be prompted for your OTP code:
-
-```text
-Pushing gem to https://rubygems.org...
-Enter your MFA code: 123456
-Successfully registered gem: blog_verification (1.0.0)
-```
-
----
-
-### Step 8: Verify Your Published Gem
-
-Your gem will be immediately live and indexable! Visit:
-
-```
-https://rubygems.org/gems/blog_verification
-```
-
-Now any developer in the world can install your gem with:
+Install with:
 
 ```bash
 gem install blog_verification
