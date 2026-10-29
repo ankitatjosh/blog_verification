@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Building a REST API with Node.js and Express - Jane Doe</title>
+  <link rel="canonical" href="https://medium.com/@janedoe/building-a-rest-api-with-nodejs-7ca392289650" />
+  <meta property="article:published_time" content="2026-10-11T23:45:00.000Z" />
+  <meta property="article:author" content="https://medium.com/@janedoe" />
+  <meta name="author" content="Jane Doe" />
+  <meta name="description" content="A comprehensive guide to building clean, maintainable REST APIs with Node.js and Express." />
+  <meta property="og:description" content="A comprehensive guide to building clean, maintainable REST APIs with Node.js and Express." />
+  <meta property="article:tag" content="nodejs" />
+  <meta property="article:tag" content="api" />
+  <meta property="article:tag" content="express" />
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "NewsArticle",
+    "headline": "Building a REST API with Node.js and Express",
+    "description": "A comprehensive guide to building clean, maintainable REST APIs with Node.js and Express.",
+    "datePublished": "2026-10-11T23:45:00.000Z",
+    "dateModified": "2026-10-12T08:00:00.000Z",
+    "author": {
+      "@type": "Person",
+      "name": "Jane Doe",
+      "url": "https://medium.com/@janedoe"
+    },
+    "keywords": [
+      "nodejs",
+      "api",
+      "express"
+    ]
+  }
+  </script>
+</head>
+<body>
+  <article>
+    <h1>Building a REST API with Node.js and Express</h1>
+    <p>In modern web engineering, designing reliable and resilient backend services is fundamental to creating scalable software systems. When architecting an enterprise application using Node.js and Express, adhering to proven RESTful conventions provides predictability, uniform interfaces, and modular separation of concerns. This guide walks through establishing a robust API structure from scratch, incorporating validation, error handling, security best practices, and automated testing.</p>
+    <p>A maintainable API separates routing, business orchestration, and data access into distinct layers. Rather than writing monolithic route handlers where database queries, business logic, and request validation are coupled together, adopt a multi-tier pattern.</p>
+    <p>Routing Layer is responsible solely for mapping incoming HTTP methods and endpoint paths to controller actions without embedding domain decisions. Controller Layer extracts request payloads, triggers schema validation, invokes domain services, and returns formatted HTTP responses. Service Layer houses the core business rules and validations independent of HTTP mechanics, making it straightforward to test. Data Access Layer communicates with databases or external upstream platform APIs, abstracting network operations away from domain entities.</p>
+    <p>Never trust user input directly. Malformed payloads, missing required fields, and unexpected data types must be caught before reaching the domain logic. Libraries such as Zod allow developers to define declarative schemas that parse, sanitize, and validate incoming data structures. Strict parsing ensures that unexpected top-level fields are rejected, mitigating mass-assignment vulnerabilities.</p>
+    <p>One of the most frequent shortcomings in REST API design is the inconsistent application of HTTP status codes. Every response should unambiguously communicate the outcome: 200 OK for successfully processed requests, 400 Bad Request for malformed JSON or syntax defects, 422 Unprocessable Entity for domain validation errors, 404 Not Found for non-existent resources, and 500 Internal Server Error for server-side exceptions.</p>
+    <p>Standardizing error response payloads into a predictable format featuring clear error codes, target fields, and user-friendly messages greatly simplifies client-side integration and automated contract validation.</p>
+    <p>Building an Internet-facing API requires defensive engineering against common vectors of exploitation. Outbound request validation must prevent Server-Side Request Forgery by verifying destination IP addresses against private and loopback CIDR blocks. Incoming requests should be protected by rate limiters to avert denial-of-service attempts. Disabling header identifiers like X-Powered-By obscures framework details from attackers.</p>
+    <p>Once deployed to production, an API must provide sufficient observability into its runtime health without compromising user privacy. Implement structured logging frameworks that capture incoming request latency, HTTP status codes, and user-agent details while redacting sensitive tokens, passwords, and personally identifiable information. Correlate asynchronous operations using distributed tracing IDs attached to each incoming request header.</p>
+    <p>To ensure your service remains reliable across changes, institute a comprehensive testing strategy. Unit tests should isolate individual domain algorithms, normalization routines, and schema validators. Integration tests should simulate real HTTP requests across controllers and middleware, testing edge cases like malformed payloads, rate limits, and network timeouts.</p>
+    <p>Adopting these patterns ensures that your backend remains maintainable, secure, and resilient under production workloads. Clean code structure, defensive network controls, and rigorous automated test coverage will pay dividends as your service scales over time.</p>
+  </article>
+</body>
+</html>

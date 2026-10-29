@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'bundler/setup'
+require 'blog_verification'
+require 'irb'
+
+puts "Loaded BlogVerification v#{BlogVerification::VERSION}"
+puts "You can test BlogVerification.verify(...) in this console."
+IRB.start(__FILE__)
