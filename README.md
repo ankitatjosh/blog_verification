@@ -1,149 +1,166 @@
-# Blog Verification API — Node.js
+# BlogVerification — Ruby Gem
 
-A high-reliability, lightweight REST API built with Node.js and Express that verifies whether a submitted blog URL belongs to the claimed author and matches expected metadata.
+A robust, lightweight Ruby Gem for verifying whether a submitted blog URL belongs to the expected author, was published in the current quarter, contains sufficient article length, and matches expected topic, summary, and tag metadata.
 
-Supports **DEV Community (dev.to)** and **Medium**.
+Built for **Ruby on Rails** applications and standalone Ruby backends.
+
+Supports **Medium** and **DEV Community (`dev.to`)**.
+
+> [!TIP]
+> **Sample Verification App & Server Included**: A complete verification runner and HTTP API server is available in [`ruby_verification_app/`](./ruby_verification_app) to test and run the gem locally.
 
 ---
 
-## Features
+## Key Features
 
+- **Strict Ruby 2.7.8+ Compatibility**: Compatible with Ruby 2.7.8 through modern Ruby 3.x, tested across standard MRI runtimes.
+- **Identical Input & Output Contract**: Produces the exact same structured JSON/Hash responses, error codes, and field checks as the original Node.js REST API.
+- **Rails Integration**:
+  - Direct helper: `BlogVerification.verify(params)`
+  - ActiveModel / ActiveRecord validation: `validates :url, blog_verification: { ... }`
 - **Platform Adapters**:
   - **DEV Community**: Official Forem API integration with canonical author extraction, tag lists, publication timestamps, and excerpts.
-  - **Medium**: HTML structured metadata parsing (JSON-LD `NewsArticle`/`BlogPosting`, meta tags, canonical `@username` resolution) with resilient handling of missing upstream metadata.
-- **Strict Verification Rules**:
-  - **URL & Article Existence**: Validates syntax, supported hosts, rejects homepages and profile links, safely verifies article presence.
-  - **Canonical Author**: Strictly verifies canonical platform username (not display names); normalizes whitespace and case. For Medium, leverages JSON-LD `NewsArticle`/`BlogPosting` `author.identifier`, `@id`, and URLs.
-  - **Original Publication Date**: Strict `YYYY-MM-DD` calendar date comparison normalized to UTC calendar dates (protecting against timezone boundary discrepancies). Does not substitute modified/updated dates.
-  - **Quarter Verification**: Confirms that the blog was created/published within the **current quarter** (Q1: Apr-Jun, Q2: Jul-Sep, Q3: Oct-Dec, Q4: Jan-Mar). Out-of-quarter articles fail with `NOT_IN_CURRENT_QUARTER`.
-  - **Blog Length Verification**: Counts body words (stripping HTML tags and markdown formatting) and validates that the article satisfies minimum word count (default 500 words). Failing articles return `INSUFFICIENT_CONTENT_LENGTH`.
-  - **Topic Taxonomy**: Deterministic mapping from authoritative metadata/tags to a curated canonical taxonomy or direct topic verification.
-  - **Summary/Excerpt**: Deterministic exact-match normalization (HTML tag removal, HTML entity decoding, whitespace collapsing, and case normalization).
-  - **Optional Tags**: Tags are optional—omitting them or providing `tags: []` skips tag validation without penalty. When supplied, set comparison is performed ignoring order and case.
-- **Security & SSRF Mitigation**:
-  - Restricts outbound requests to approved platform hosts (`dev.to`, `medium.com`).
-  - DNS resolution check blocking loopback, link-local, private IPv4 (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), and private IPv6 ranges before connecting.
-  - Inspects all redirects to prevent open redirect SSRF attacks.
-  - Request body limits, rate limiting, and safe timeouts.
-- **Precise Status Differentiation**:
-  - `valid`: All required and supplied optional checks pass.
-  - `invalid`: Confirmed mismatch or confirmed non-existent article.
-  - `unverified`: Upstream timeout, rate limit, access denial, or missing source metadata without confirmed mismatch.
+  - **Medium**: Parses JSON-LD structured data (`NewsArticle`/`BlogPosting`) to extract canonical author identifiers (`author.identifier`, `@id`, `url`), publication timestamps, tags, and body content.
+- **Current Quarter Verification**:
+  - Automatically verifies whether the blog was created in the current quarter:
+    - **Quarter 1**: April 1 – June 30
+    - **Quarter 2**: July 1 – September 30
+    - **Quarter 3**: October 1 – December 31
+    - **Quarter 4**: January 1 – March 31
+  - Out-of-quarter articles fail with `NOT_IN_CURRENT_QUARTER`.
+  - Supports optional `reference_date` (`YYYY-MM-DD`) for deterministic testing.
+- **Article Word Count (Length Check)**:
+  - Strips HTML tags and markdown formatting to count body words.
+  - Verifies minimum word count (default: 500 words). Articles under 500 words fail with `INSUFFICIENT_CONTENT_LENGTH`.
+- **SSRF & Outbound Security**:
+  - Validates URL syntax, protocols (HTTPS), and approved hosts.
+  - Verifies destination IP addresses against private and loopback CIDR blocks before connecting.
+  - Safely follows HTTP redirects up to a maximum depth of 5, re-validating destination hosts and IPs at every hop.
 
 ---
 
-## Tech Stack
+## Installation
 
-- **Runtime**: Node.js LTS (v20+ / v22+)
-- **Framework**: Express.js
-- **Validation**: Zod
-- **Networking & Security**: Native `fetch`, `ipaddr.js`, `express-rate-limit`, `he`
-- **Testing**: Jest, Supertest
+### In a Ruby on Rails Application
 
----
+Add this line to your application's `Gemfile`:
 
-## Installation & Setup
-
-### Prerequisites
-
-- Node.js >= 20.0.0
-- npm >= 9.0.0
-
-### 1. Clone & Install Dependencies
-
-```bash
-git clone <repository-url>
-cd BlogsVerification
-npm install
+```ruby
+gem 'blog_verification'
 ```
 
-### 2. Configure Environment
-
-Copy `.env.example` to `.env`:
+And then execute:
 
 ```bash
-cp .env.example .env
+bundle install
 ```
 
-Available configuration variables:
+### In Plain Ruby or CLI
 
-| Variable | Default | Description |
-|---|---|---|
-| `PORT` | `3000` | Port for the HTTP server |
-| `NODE_ENV` | `development` | Environment mode (`development`, `production`, `test`) |
-| `REQUEST_TIMEOUT_MS` | `5000` | Upstream platform request timeout in milliseconds |
-| `MAX_REQUEST_BODY_SIZE` | `100kb` | Maximum accepted JSON request body size |
-| `RATE_LIMIT_WINDOW_MS` | `60000` | Rate limiter window in milliseconds (default: 1 min) |
-| `RATE_LIMIT_MAX_REQUESTS` | `100` | Max requests per IP within the rate limit window |
-| `SKIP_DNS_CHECK` | `false` | Set `true` only in offline mock testing |
+Install directly via RubyGems:
 
-### 3. Run the Server
-
-Development mode (with auto-reload):
 ```bash
-npm run dev
-```
-
-Production mode:
-```bash
-npm start
-```
-
-### 4. Run Tests
-
-Run test suite:
-```bash
-npm test
-```
-
-Generate test coverage report:
-```bash
-npm run test:coverage
+gem install blog_verification
 ```
 
 ---
 
-## API Specification
+## Usage in Ruby on Rails
 
-### Endpoint
+### 1. In Controllers or Service Objects
 
-```http
-POST /api/v1/blogs/verify
-Content-Type: application/json
+You can call `BlogVerification.verify` using either **symbols** or **strings** for keys:
+
+```ruby
+class BlogSubmissionsController < ApplicationController
+  def verify
+    result = BlogVerification.verify(
+      platform: params[:platform],                      # 'medium' or 'devto'
+      url: params[:url],                                # Full article URL
+      username: params[:username],                      # Expected author username
+      published_at: params[:published_at],              # 'YYYY-MM-DD'
+      tags: params[:tags],                              # Optional array of strings
+      topic: params[:topic],                            # 'Backend Development'
+      summary: params[:summary],                        # Expected description
+      min_word_count: 500                               # Optional, defaults to 500
+    )
+
+    case result['status']
+    when 'valid'
+      render json: { success: true, message: 'Blog verified successfully!', data: result['data'] }
+    when 'invalid'
+      render json: { success: false, errors: result['errors'], data: result['data'] }, status: :unprocessable_entity
+    when 'unverified'
+      render json: { success: false, message: 'Upstream platform unavailable.', errors: result['errors'] }, status: :service_unavailable
+    else
+      render json: { success: false, errors: result['errors'] }, status: :bad_request
+    end
+  end
+end
 ```
 
-### Request Body Schema
+### 2. In ActiveRecord Models (Custom Validator)
 
-```json
-{
-  "platform": "devto",
-  "url": "https://dev.to/janedoe/building-a-node-api-123",
-  "username": "janedoe",
-  "publishedAt": "2026-10-11",
-  "tags": ["nodejs", "api"],
-  "topic": "Backend Development",
-  "summary": "A guide to building APIs using Node.js",
-  "minWordCount": 500
-}
+The gem comes with an ActiveModel validator out-of-the-box:
+
+```ruby
+class ArticleSubmission < ApplicationRecord
+  # Attributes: platform, url, author_username, publication_date, topic, summary, tags
+
+  validates :url, presence: true, blog_verification: {
+    platform: :platform,
+    username: :author_username,
+    published_at: :publication_date,
+    topic: :topic,
+    summary: :summary,
+    tags: :tags,
+    min_word_count: 500
+  }
+end
 ```
+
+When calling `article_submission.valid?`, the validator automatically performs the verification. Any verification errors (e.g. `AUTHOR_MISMATCH`, `NOT_IN_CURRENT_QUARTER`, `INSUFFICIENT_CONTENT_LENGTH`) are appended to `article_submission.errors[:url]`.
+
+---
+
+## Configuration
+
+You can configure global gem settings via an initializer (e.g. `config/initializers/blog_verification.rb` in Rails):
+
+```ruby
+BlogVerification.configure do |config|
+  config.request_timeout = 5.0      # Outbound request timeout in seconds (default: 5.0)
+  config.max_redirects = 5          # Maximum redirects to follow (default: 5)
+  config.require_https = true       # Require HTTPS URLs in production (default: true)
+  config.skip_dns_check = false     # Set true only in offline/mock testing environments
+end
+```
+
+---
+
+## Input & Output Specification
+
+### Input Hash
+
+Both `camelCase` and `snake_case` keys are supported:
 
 | Field | Type | Required | Description |
 |---|---|---|---|
-| `platform` | String | **Yes** | Supported values: `"devto"` or `"medium"` |
-| `url` | String | **Yes** | Public HTTPS article URL |
+| `platform` | String | **Yes** | `"devto"` or `"medium"` |
+| `url` | String | **Yes** | Article HTTPS URL |
 | `username` | String | **Yes** | Expected canonical author username |
-| `publishedAt` | String | **Yes** | Original publication date in `YYYY-MM-DD` |
+| `published_at` / `publishedAt` | String | **Yes** | Original publication date in `YYYY-MM-DD` |
 | `tags` | Array of strings | No | Expected tags; omitting or `[]` skips validation |
 | `topic` | String | **Yes** | Expected topic matching taxonomy |
 | `summary` | String | **Yes** | Expected official description or excerpt |
-| `minWordCount` | Number | No | Minimum required word count (defaults to `500`) |
-| `referenceDate` | String | No | Custom reference date (`YYYY-MM-DD`) for quarter check (defaults to current system date) |
+| `min_word_count` / `minWordCount` | Integer | No | Minimum required word count (default: `500`) |
+| `reference_date` / `referenceDate` | String | No | Custom reference date (`YYYY-MM-DD`) for quarterly verification (default: today) |
 
 ---
 
-### Response Examples
+### Output Hash Examples
 
-#### 1. Valid Blog Verification (HTTP 200 OK)
+#### 1. Valid Blog Verification
 
 ```json
 {
@@ -151,21 +168,19 @@ Content-Type: application/json
   "status": "valid",
   "message": "Blog verification completed successfully.",
   "data": {
-    "platform": "devto",
-    "url": "https://dev.to/janedoe/building-a-node-api-123",
+    "platform": "medium",
+    "url": "https://medium.com/@thedevankit/mastering-clean-architecture-in-nodejs-abc12345",
     "checks": {
-      "url": {
-        "status": "passed"
-      },
+      "url": { "status": "passed" },
       "username": {
         "status": "passed",
-        "expected": "janedoe",
-        "actual": "janedoe"
+        "expected": "thedevankit",
+        "actual": "thedevankit"
       },
       "publishedAt": {
         "status": "passed",
-        "expected": "2026-10-11",
-        "actual": "2026-10-11"
+        "expected": "2026-10-15",
+        "actual": "2026-10-15"
       },
       "quarter": {
         "status": "passed",
@@ -175,66 +190,27 @@ Content-Type: application/json
       },
       "tags": {
         "status": "passed",
-        "expected": ["api", "nodejs"],
-        "actual": ["api", "nodejs"]
+        "expected": ["architecture", "express", "nodejs"],
+        "actual": ["architecture", "express", "nodejs"]
       },
       "topic": {
         "status": "passed",
         "expected": "Backend Development",
         "actual": "Backend Development"
       },
-      "summary": {
-        "status": "passed"
-      },
-      "contentLength": {
-        "status": "passed",
-        "wordCount": 842,
-        "minRequired": 500,
-        "message": "Blog length passed (842 words >= 500 words)."
-      }
-    }
-  }
-}
-```
-
-#### 2. Valid Blog with Tags Omitted (HTTP 200 OK)
-
-```json
-{
-  "success": true,
-  "status": "valid",
-  "message": "Blog verification completed successfully.",
-  "data": {
-    "platform": "devto",
-    "url": "https://dev.to/janedoe/building-a-node-api-123",
-    "checks": {
-      "url": { "status": "passed" },
-      "username": { "status": "passed" },
-      "publishedAt": { "status": "passed" },
-      "quarter": {
-        "status": "passed",
-        "currentQuarter": "October - December 2026",
-        "blogQuarter": "October - December 2026",
-        "message": "Blog publication date is in the current quarter (October - December 2026)."
-      },
-      "tags": {
-        "status": "skipped",
-        "message": "Tag validation was skipped because tags were not provided."
-      },
-      "topic": { "status": "passed" },
       "summary": { "status": "passed" },
       "contentLength": {
         "status": "passed",
-        "wordCount": 780,
+        "wordCount": 850,
         "minRequired": 500,
-        "message": "Blog length passed (780 words >= 500 words)."
+        "message": "Blog length passed (850 words >= 500 words)."
       }
     }
   }
 }
 ```
 
-#### 3. Failed Verification / Mismatches (HTTP 200 OK)
+#### 2. Failed Verification (Mismatch / Out of Quarter / Short Length)
 
 ```json
 {
@@ -242,20 +218,6 @@ Content-Type: application/json
   "status": "invalid",
   "message": "Blog verification failed.",
   "errors": [
-    {
-      "code": "AUTHOR_MISMATCH",
-      "field": "username",
-      "message": "The submitted username does not match the blog author.",
-      "expected": "janedoe",
-      "actual": "otheruser"
-    },
-    {
-      "code": "PUBLICATION_DATE_MISMATCH",
-      "field": "publishedAt",
-      "message": "The submitted publication date does not match the blog's publication date.",
-      "expected": "2026-10-11",
-      "actual": "2026-10-12"
-    },
     {
       "code": "NOT_IN_CURRENT_QUARTER",
       "field": "publishedAt",
@@ -266,180 +228,206 @@ Content-Type: application/json
     {
       "code": "INSUFFICIENT_CONTENT_LENGTH",
       "field": "contentLength",
-      "message": "Blog length check failed. Article contains 320 words, but a minimum of 500 words is required.",
+      "message": "The blog content does not meet the minimum required length of 500 words.",
       "expected": 500,
-      "actual": 320
+      "actual": 250
     }
   ],
   "data": {
-    "platform": "devto",
-    "url": "https://dev.to/janedoe/building-a-node-api-123",
-    "checks": {
-      "url": { "status": "passed" },
-      "username": { "status": "failed" },
-      "publishedAt": { "status": "failed" },
-      "quarter": { "status": "failed" },
-      "tags": { "status": "skipped" },
-      "topic": { "status": "passed" },
-      "summary": { "status": "passed" },
-      "contentLength": { "status": "failed", "wordCount": 320, "minRequired": 500 }
-    }
-  }
-}
-```
-
-#### 4. Unverified Response (HTTP 200 OK)
-
-Returned when source platform times out or upstream metadata is inaccessible:
-
-```json
-{
-  "success": true,
-  "status": "unverified",
-  "message": "Blog verification could not be completed.",
-  "errors": [
-    {
-      "code": "SOURCE_TIMEOUT",
-      "field": null,
-      "message": "The source platform did not respond within the allowed time."
-    }
-  ],
-  "data": {
-    "platform": "devto",
-    "url": "https://dev.to/janedoe/building-a-node-api-123",
-    "checks": {
-      "url": { "status": "unverified" },
-      "username": { "status": "unverified" },
-      "publishedAt": { "status": "unverified" },
-      "quarter": { "status": "unverified" },
-      "tags": { "status": "skipped" },
-      "topic": { "status": "unverified" },
-      "summary": { "status": "unverified" },
-      "contentLength": { "status": "unverified" }
-    }
-  }
-}
-```
-
----
-
-## Error Codes Registry
-
-| Error Code | HTTP Status | Meaning |
-|---|---|---|
-| `INVALID_REQUEST` | 400 | Request body or structure is malformed JSON |
-| `MISSING_REQUIRED_FIELD` | 400 | A required field is missing |
-| `INVALID_PLATFORM` | 422 | Unsupported platform |
-| `INVALID_URL` | 422 | Malformed URL or unauthorized host |
-| `UNSAFE_URL` | 422 | URL or redirect targets loopback or private network |
-| `ARTICLE_NOT_FOUND` | 200 | Source confirms article does not exist (`status: invalid`) |
-| `ARTICLE_ACCESS_DENIED` | 200 | Upstream article is paywalled or restricted (`status: unverified`) |
-| `AUTHOR_MISMATCH` | 200 | Expected username differs from canonical author (`status: invalid`) |
-| `PUBLICATION_DATE_MISMATCH`| 200 | Expected date differs from publication date (`status: invalid`) |
-| `TAGS_MISMATCH` | 200 | Supplied tags differ from source tags (`status: invalid`) |
-| `TOPIC_MISMATCH` | 200 | Expected topic differs from verified topic (`status: invalid`) |
-| `SUMMARY_MISMATCH` | 200 | Expected summary differs from description (`status: invalid`) |
-| `NOT_IN_CURRENT_QUARTER` | 200 | Blog creation date is outside current quarter (`status: invalid`) |
-| `INSUFFICIENT_CONTENT_LENGTH` | 200 | Article word count is below required minimum (`status: invalid`) |
-| `SOURCE_METADATA_UNAVAILABLE`| 200 | Required metadata cannot be retrieved (`status: unverified`) |
-| `SOURCE_RATE_LIMITED` | 200 | Source platform rate-limited the request (`status: unverified`) |
-| `SOURCE_TIMEOUT` | 200 | Source request timed out (`status: unverified`) |
-| `SOURCE_UNAVAILABLE` | 200 | Source service is temporarily down (`status: unverified`) |
-| `SOURCE_RESPONSE_INVALID` | 200 | Source response could not be parsed (`status: unverified`) |
-| `INTERNAL_ERROR` | 500 | Unexpected internal server error |
-
----
-
-## Quarter Verification Schedule
-
-The API strictly verifies whether the blog's publication date falls within the **current quarter**. The four quarterly intervals are defined as:
-
-| Quarter | Date Range | Description |
-|---|---|---|
-| **Quarter 1** | April 1 – June 30 | Q1 |
-| **Quarter 2** | July 1 – September 30 | Q2 |
-| **Quarter 3** | October 1 – December 31 | Q3 |
-| **Quarter 4** | January 1 – March 31 | Q4 |
-
-If the article was published in an earlier or future quarter compared to the current system date (or caller's `referenceDate`), the check returns `status: "failed"` with error code `NOT_IN_CURRENT_QUARTER` and marks verification as `invalid`.
-
----
-
-## cURL Request Examples
-
-### 1. Verify a Medium Blog (with Author JSON-LD Extraction & Quarter Check)
-
-```bash
-curl -X POST http://localhost:3000/api/v1/blogs/verify \
-  -H "Content-Type: application/json" \
-  -d '{
     "platform": "medium",
     "url": "https://medium.com/@thedevankit/mastering-clean-architecture-in-nodejs-abc12345",
-    "username": "thedevankit",
-    "publishedAt": "2026-10-15",
-    "tags": ["nodejs", "architecture", "express"],
-    "topic": "Backend Development",
-    "summary": "A comprehensive deep dive into implementing clean architecture and domain-driven design in Node.js applications.",
-    "minWordCount": 500
-  }'
-```
-
-### 2. Verify a DEV Community (dev.to) Blog
-
-```bash
-curl -X POST http://localhost:3000/api/v1/blogs/verify \
-  -H "Content-Type: application/json" \
-  -d '{
-    "platform": "devto",
-    "url": "https://dev.to/janedoe/building-a-rest-api-with-nodejs-123",
-    "username": "janedoe",
-    "publishedAt": "2026-10-11",
-    "tags": ["nodejs", "api", "express"],
-    "topic": "Backend Development",
-    "summary": "A comprehensive guide to building clean, maintainable REST APIs with Node.js and Express.",
-    "minWordCount": 500
-  }'
-```
-
-### 3. Verify a Blog with Historical/Custom Reference Date
-
-To verify an older blog against the quarter it was published in, provide `referenceDate`:
-
-```bash
-curl -X POST http://localhost:3000/api/v1/blogs/verify \
-  -H "Content-Type: application/json" \
-  -d '{
-    "platform": "devto",
-    "url": "https://dev.to/janedoe/building-a-rest-api-with-nodejs-123",
-    "username": "janedoe",
-    "publishedAt": "2026-05-20",
-    "referenceDate": "2026-06-01",
-    "topic": "Backend Development",
-    "summary": "A comprehensive guide to building clean, maintainable REST APIs with Node.js and Express."
-  }'
+    "checks": {
+      "url": { "status": "passed" },
+      "username": { "status": "passed" },
+      "publishedAt": { "status": "passed" },
+      "quarter": { "status": "failed" },
+      "tags": { "status": "passed" },
+      "topic": { "status": "passed" },
+      "summary": { "status": "passed" },
+      "contentLength": { "status": "failed", "wordCount": 250, "minRequired": 500 }
+    }
+  }
+}
 ```
 
 ---
 
-## Topic Taxonomy
+## Error Codes
 
-The deterministic topic taxonomy maps article tags and categories to canonical classifications:
+| Error Code | Meaning |
+|---|---|
+| `INVALID_REQUEST` | Input payload or date format is malformed |
+| `MISSING_REQUIRED_FIELD` | A required field (`platform`, `url`, `username`, `publishedAt`, `topic`, `summary`) is missing |
+| `INVALID_PLATFORM` | Platform is not `'medium'` or `'devto'` |
+| `INVALID_URL` | URL is malformed, uses an unsupported host, or targets an index/profile page |
+| `UNSAFE_URL` | URL or redirect targets loopback or private network (SSRF protection) |
+| `ARTICLE_NOT_FOUND` | Source platform confirms article does not exist |
+| `ARTICLE_ACCESS_DENIED` | Article is restricted, paywalled, or private |
+| `AUTHOR_MISMATCH` | Expected username does not match canonical platform username |
+| `PUBLICATION_DATE_MISMATCH` | Expected date does not match source publication date (UTC) |
+| `NOT_IN_CURRENT_QUARTER` | Blog publication date is outside the current quarter |
+| `INSUFFICIENT_CONTENT_LENGTH` | Article word count is under the required minimum (default 500) |
+| `TAGS_MISMATCH` | Supplied tags do not match article tags |
+| `TOPIC_MISMATCH` | Expected topic does not match verified topic |
+| `SUMMARY_MISMATCH` | Expected summary does not match description |
+| `SOURCE_RATE_LIMITED` | Source platform rate limited the request |
+| `SOURCE_TIMEOUT` | Upstream platform timed out |
+| `SOURCE_UNAVAILABLE` | Upstream platform is down |
 
-- **Backend Development** (e.g. `nodejs`, `express`, `api`, `django`, `spring`, `fastapi`, `graphql`, `microservices`)
-- **Frontend Development** (e.g. `react`, `vue`, `angular`, `svelte`, `css`, `html`, `tailwind`, `nextjs`)
-- **Full Stack Development** (e.g. `fullstack`, `mern`, `mean`, `webdev`)
-- **DevOps & Cloud** (e.g. `docker`, `kubernetes`, `aws`, `gcp`, `azure`, `ci-cd`, `terraform`)
-- **Artificial Intelligence & Machine Learning** (e.g. `ai`, `machine-learning`, `llm`, `data-science`, `nlp`)
-- **Mobile Development** (e.g. `android`, `ios`, `flutter`, `react-native`, `swift`, `kotlin`)
-- **Cybersecurity** (e.g. `security`, `cybersecurity`, `auth`, `jwt`, `cryptography`)
-- **Database & Data Engineering** (e.g. `database`, `sql`, `postgresql`, `mysql`, `mongodb`, `redis`)
-- **Software Architecture & Design** (e.g. `architecture`, `design-patterns`, `system-design`, `unix`)
-- **Programming Languages** (e.g. `programming`, `javascript`, `typescript`, `python`, `rust`, `go`)
-- **Testing & Quality Assurance** (e.g. `testing`, `qa`, `jest`, `cypress`, `unit-testing`)
-- **Web Development**
+---
+
+# Step-by-Step Guide to Uploading the Gem to RubyGems.org
+
+Follow these instructions to build, package, and publish `blog_verification` to the official RubyGems library ([rubygems.org](https://rubygems.org)).
+
+### Step 1: Create a RubyGems.org Account
+
+1. Go to [https://rubygems.org/sign_up](https://rubygems.org/sign_up) and register an account.
+2. Verify your email address.
+3. Enable Multi-Factor Authentication (MFA) in your account settings (RubyGems now requires MFA for gem maintainers).
+
+---
+
+### Step 2: Configure RubyGems API Credentials on Your Machine
+
+Open your terminal and run:
+
+```bash
+gem signin
+```
+
+Enter your RubyGems email and password. When prompted, enter your MFA code. This will save your API key securely into `~/.gem/credentials`.
+
+Alternatively, you can manually set your API key:
+
+```bash
+curl -u <your-username> https://rubygems.org/api/v1/api_key.yaml > ~/.gem/credentials
+chmod 0600 ~/.gem/credentials
+```
+
+---
+
+### Step 3: Verify Gem Metadata
+
+Open `blog_verification.gemspec` and ensure the following fields are personalized:
+
+- `spec.name`: Must be unique on RubyGems.org. If `blog_verification` is already taken, you can name it `blog_verification_api` or `my_org_blog_verification`.
+- `spec.version`: Ensure `lib/blog_verification/version.rb` is set (e.g. `'1.0.0'`).
+- `spec.authors`: Your name or organization.
+- `spec.email`: Your contact email.
+- `spec.homepage`: Your repository URL (e.g. GitHub URL).
+
+---
+
+### Step 4: Run the Test Suite
+
+Before releasing, execute the test suite to ensure all tests pass:
+
+```bash
+bundle install
+bundle exec rspec
+```
+
+All unit and integration specs should pass.
+
+---
+
+### Step 5: Build the Gem Package
+
+In the `rubyGeM` root directory, run:
+
+```bash
+gem build blog_verification.gemspec
+```
+
+Output:
+```text
+  Successfully built RubyGem
+  Name: blog_verification
+  Version: 1.0.0
+  File: blog_verification-1.0.0.gem
+```
+
+This creates the packaged binary file: `blog_verification-1.0.0.gem`.
+
+---
+
+### Step 6: Test the Gem Locally (Optional but Recommended)
+
+You can install the newly built gem locally to verify that it installs and loads cleanly:
+
+```bash
+gem install ./blog_verification-1.0.0.gem
+```
+
+Test it in `irb`:
+
+```ruby
+require 'blog_verification'
+
+BlogVerification::VERSION
+# => "1.0.0"
+```
+
+---
+
+### Step 7: Push the Gem to RubyGems.org
+
+Publish your gem to the global Ruby community with:
+
+```bash
+gem push blog_verification-1.0.0.gem
+```
+
+If your account has MFA enabled, you will be prompted for your OTP code:
+
+```text
+Pushing gem to https://rubygems.org...
+Enter your MFA code: 123456
+Successfully registered gem: blog_verification (1.0.0)
+```
+
+---
+
+### Step 8: Verify Your Published Gem
+
+Your gem will be immediately live and indexable! Visit:
+
+```
+https://rubygems.org/gems/blog_verification
+```
+
+Now any developer in the world can install your gem with:
+
+```bash
+gem install blog_verification
+```
+
+Or add it to their Rails `Gemfile`:
+
+```ruby
+gem 'blog_verification', '~> 1.0'
+```
+
+---
+
+## Sample Application & Verification Runner
+
+This repository includes a standalone Ruby verification application located in [`ruby_verification_app/`](./ruby_verification_app):
+
+- **Automated Verification Suite**: Exercises all 13 core scenarios (valid Medium with JSON-LD, valid DEV.to, author mismatch, date mismatch, quarter checks, word count checks, optional tags, topic derivation, summary comparison, and error handling).
+- **HTTP API Server**: Runs an Express/Node.js-compatible HTTP server on `http://localhost:4567/api/v1/blogs/verify`.
+
+To run the sample app:
+```bash
+cd ruby_verification_app
+bundle install
+ruby app.rb          # Runs the 13 verification scenarios
+ruby app.rb --server # Starts the REST API server on port 4567
+```
 
 ---
 
 ## License
 
-MIT
+The gem is available as open source under the terms of the [MIT License](LICENSE.txt).

@@ -1,5 +1,5 @@
 PATH
-  remote: ../rubyGeM
+  remote: ..
   specs:
     blog_verification (1.0.0)
       nokogiri (>= 1.13.0, < 2.0)

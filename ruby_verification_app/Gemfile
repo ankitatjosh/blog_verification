@@ -10,5 +10,5 @@ gem 'nokogiri', '1.19.4'
 # Web server for API mode
 gem 'webrick', '~> 1.9'
 
-# Load our local blog_verification gem
-gem 'blog_verification', path: '../rubyGeM'
+# Load our local blog_verification gem (located at repo root)
+gem 'blog_verification', path: '..'

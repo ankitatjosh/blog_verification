@@ -18,7 +18,11 @@ module BlogVerificationApp
   end
 
   class Runner
-    FIXTURES_DIR = File.expand_path('../rubyGeM/spec/fixtures', __dir__)
+    FIXTURES_DIR = if Dir.exist?(File.expand_path('../spec/fixtures', __dir__))
+                     File.expand_path('../spec/fixtures', __dir__)
+                   else
+                     File.expand_path('../rubyGeM/spec/fixtures', __dir__)
+                   end
 
     def self.run_suite
       puts Color.bold(Color.cyan("=" * 70))
