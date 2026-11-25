@@ -1,6 +1,6 @@
 # BlogVerification — Ruby Gem
 
-A robust, lightweight Ruby Gem for verifying whether a submitted blog URL belongs to the expected author, was published in the current quarter, contains sufficient article length, and matches expected topic, summary, and tag metadata.
+A robust, lightweight Ruby Gem for verifying whether a submitted blog URL belongs to the expected author, was published in the current quarter and month, contains sufficient article length, and matches expected topic, summary, and tag metadata.
 
 Built for **Ruby on Rails** applications and standalone Ruby backends.
 
@@ -158,7 +158,7 @@ Both `camelCase` and `snake_case` keys are supported:
 | `topic` | String | **Yes** | Expected topic matching taxonomy |
 | `summary` | String | **Yes** | Expected official description or excerpt |
 | `min_word_count` / `minWordCount` | Integer | No | Minimum required word count (default: `500`) |
-| `reference_date` / `referenceDate` | String | No | Custom reference date (`YYYY-MM-DD`) for quarterly verification (default: today) |
+| `reference_date` / `referenceDate` | String | No | Custom reference date (`YYYY-MM-DD`) for quarterly and monthly verification (default: today) |
 
 ---
 
@@ -191,6 +191,12 @@ Both `camelCase` and `snake_case` keys are supported:
         "currentQuarter": "October - December 2026",
         "blogQuarter": "October - December 2026",
         "message": "Blog publication date is in the current quarter (October - December 2026)."
+      },
+      "month": {
+        "status": "passed",
+        "currentMonth": "October 2026",
+        "blogMonth": "October 2026",
+        "message": "Blog publication date is in the current month (October 2026)."
       },
       "tags": {
         "status": "passed",
@@ -230,6 +236,13 @@ Both `camelCase` and `snake_case` keys are supported:
       "actual": "April - June 2026"
     },
     {
+      "code": "NOT_IN_CURRENT_MONTH",
+      "field": "publishedAt",
+      "message": "Blog publication date is not in the current month. Expected October 2026, but blog was published in May 2026.",
+      "expected": "October 2026",
+      "actual": "May 2026"
+    },
+    {
       "code": "INSUFFICIENT_CONTENT_LENGTH",
       "field": "contentLength",
       "message": "The blog content does not meet the minimum required length of 500 words.",
@@ -245,6 +258,7 @@ Both `camelCase` and `snake_case` keys are supported:
       "username": { "status": "passed" },
       "publishedAt": { "status": "passed" },
       "quarter": { "status": "failed" },
+      "month": { "status": "failed" },
       "tags": { "status": "passed" },
       "topic": { "status": "passed" },
       "summary": { "status": "passed" },
@@ -270,6 +284,7 @@ Both `camelCase` and `snake_case` keys are supported:
 | `AUTHOR_MISMATCH` | Expected username does not match canonical platform username |
 | `PUBLICATION_DATE_MISMATCH` | Expected date does not match source publication date (UTC) |
 | `NOT_IN_CURRENT_QUARTER` | Blog publication date is outside the current quarter |
+| `NOT_IN_CURRENT_MONTH` | Blog publication date is outside the current calendar month |
 | `INSUFFICIENT_CONTENT_LENGTH` | Article word count is under the required minimum (default 500) |
 | `TAGS_MISMATCH` | Supplied tags do not match article tags |
 | `TOPIC_MISMATCH` | Expected topic does not match verified topic |
@@ -338,7 +353,7 @@ All unit and integration specs should pass.
 
 ### Step 5: Build the Gem Package
 
-In the `rubyGeM` root directory, run:
+In the repository root directory, run:
 
 ```bash
 gem build blog_verification.gemspec
@@ -348,11 +363,11 @@ Output:
 ```text
   Successfully built RubyGem
   Name: blog_verification
-  Version: 1.0.0
-  File: blog_verification-1.0.0.gem
+  Version: 1.1.0
+  File: blog_verification-1.1.0.gem
 ```
 
-This creates the packaged binary file: `blog_verification-1.0.0.gem`.
+This creates the packaged binary file: `blog_verification-1.1.0.gem`.
 
 ---
 
@@ -361,7 +376,7 @@ This creates the packaged binary file: `blog_verification-1.0.0.gem`.
 You can install the newly built gem locally to verify that it installs and loads cleanly:
 
 ```bash
-gem install ./blog_verification-1.0.0.gem
+gem install ./blog_verification-1.1.0.gem
 ```
 
 Test it in `irb`:
@@ -370,7 +385,7 @@ Test it in `irb`:
 require 'blog_verification'
 
 BlogVerification::VERSION
-# => "1.0.0"
+# => "1.1.0"
 ```
 
 ---
@@ -381,10 +396,10 @@ Install with:
 gem install blog_verification
 ```
 
-Or add it to their Rails `Gemfile`:
+Or add it to your Rails `Gemfile`:
 
 ```ruby
-gem 'blog_verification', '~> 1.0'
+gem 'blog_verification', '~> 1.1'
 ```
 
 ---
@@ -393,16 +408,31 @@ gem 'blog_verification', '~> 1.0'
 
 This repository includes a standalone Ruby verification application located in [`ruby_verification_app/`](./ruby_verification_app):
 
-- **Automated Verification Suite**: Exercises all 13 core scenarios (valid Medium with JSON-LD, valid DEV.to, author mismatch, date mismatch, quarter checks, word count checks, optional tags, topic derivation, summary comparison, and error handling).
+- **Automated Verification Suite**: Exercises all 14 core scenarios (valid Medium with JSON-LD, valid DEV.to, author mismatch, date mismatch, quarter checks, month checks, word count checks, optional tags, topic derivation, summary comparison, and error handling).
 - **HTTP API Server**: Runs an Express/Node.js-compatible HTTP server on `http://localhost:4567/api/v1/blogs/verify`.
 
 To run the sample app:
 ```bash
 cd ruby_verification_app
 bundle install
-ruby app.rb          # Runs the 13 verification scenarios
+ruby app.rb          # Runs the 14 verification scenarios
 ruby app.rb --server # Starts the REST API server on port 4567
 ```
+
+---
+
+## Release Notes / Changelog
+
+### v1.1.0
+- **Added Current Month Verification Check**:
+  - Automatically verifies whether the blog was published in the current calendar month.
+  - Returns `checks['month']['status']`: `'passed'` if within the month, `'failed'` with error code `NOT_IN_CURRENT_MONTH` if outside.
+  - Added `Utils::DateHelper.get_month_info` and `Utils::DateHelper.date_in_current_month?` with leap year support.
+- **Enhanced Test Suite**: Added comprehensive RSpec unit and integration test coverage (66 examples passing).
+- **Sample Verification App**: Expanded to 14 automated verification scenarios.
+
+### v1.0.0
+- Initial release with Medium & DEV Community adapters, canonical author username extraction via JSON-LD, original publication date validation, quarterly verification, minimum 500-word length checks, optional tag verification, topic taxonomy derivation, summary normalization, and SSRF prevention.
 
 ---
 
