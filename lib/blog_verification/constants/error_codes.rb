@@ -28,6 +28,7 @@ module BlogVerification
     AUTHOR_MISMATCH              = 'AUTHOR_MISMATCH'
     PUBLICATION_DATE_MISMATCH    = 'PUBLICATION_DATE_MISMATCH'
     NOT_IN_CURRENT_QUARTER       = 'NOT_IN_CURRENT_QUARTER'
+    NOT_IN_CURRENT_MONTH         = 'NOT_IN_CURRENT_MONTH'
     TAGS_MISMATCH                = 'TAGS_MISMATCH'
     TOPIC_MISMATCH               = 'TOPIC_MISMATCH'
     SUMMARY_MISMATCH             = 'SUMMARY_MISMATCH'
@@ -50,6 +51,7 @@ module BlogVerification
       AUTHOR_MISMATCH => 'The submitted username does not match the blog author.',
       PUBLICATION_DATE_MISMATCH => "The submitted publication date does not match the blog's publication date.",
       NOT_IN_CURRENT_QUARTER => 'The blog publication date is not in the current quarter.',
+      NOT_IN_CURRENT_MONTH => 'The blog publication date is not in the current month.',
       TAGS_MISMATCH => "The submitted tags do not match the blog's tags.",
       TOPIC_MISMATCH => "The submitted topic does not match the blog's topic.",
       SUMMARY_MISMATCH => "The submitted summary does not match the blog's description.",

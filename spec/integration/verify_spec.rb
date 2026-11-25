@@ -33,6 +33,7 @@ RSpec.describe 'BlogVerification.verify End-to-End Integration' do
       expect(result['data']['checks']['username']['status']).to eq('passed')
       expect(result['data']['checks']['publishedAt']['status']).to eq('passed')
       expect(result['data']['checks']['quarter']['status']).to eq('passed')
+      expect(result['data']['checks']['month']['status']).to eq('passed')
       expect(result['data']['checks']['tags']['status']).to eq('passed')
       expect(result['data']['checks']['topic']['status']).to eq('passed')
       expect(result['data']['checks']['summary']['status']).to eq('passed')
@@ -81,6 +82,23 @@ RSpec.describe 'BlogVerification.verify End-to-End Integration' do
       expect(result['status']).to eq('valid')
       expect(result['data']['checks']['username']['status']).to eq('passed')
       expect(result['data']['checks']['quarter']['status']).to eq('passed')
+      expect(result['data']['checks']['month']['status']).to eq('passed')
+    end
+
+    it 'returns invalid when blog publication is not in reference month' do
+      result = BlogVerification.verify(
+        platform: 'medium',
+        url: url,
+        username: 'janedoe',
+        published_at: '2026-10-11',
+        topic: 'Backend Development',
+        summary: 'A comprehensive guide to building clean, maintainable REST APIs with Node.js and Express.',
+        reference_date: '2026-11-15' # Blog is in October, reference is in November
+      )
+
+      expect(result['status']).to eq('invalid')
+      expect(result['data']['checks']['month']['status']).to eq('failed')
+      expect(result['errors'][0]['code']).to eq('NOT_IN_CURRENT_MONTH')
     end
   end
 

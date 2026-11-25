@@ -9,7 +9,7 @@ Gem::Specification.new do |spec|
   spec.email         = ['thedevankit@gmail.com']
 
   spec.summary       = 'Lightweight blog verification library for Medium and DEV Community'
-  spec.description   = 'Verifies whether a submitted blog URL belongs to the claimed author, matches publication date and quarter, meets minimum word length, and matches expected topic and summary metadata.'
+  spec.description   = 'Verifies whether a submitted blog URL belongs to the claimed author, matches publication date, quarter, and month, meets minimum word length, and matches expected topic and summary metadata.'
   spec.homepage      = 'https://github.com/thedevankit/blog_verification'
   spec.license       = 'MIT'
   spec.required_ruby_version = '>= 2.7.8'

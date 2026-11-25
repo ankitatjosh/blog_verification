@@ -103,4 +103,55 @@ RSpec.describe BlogVerification::Utils::DateHelper do
       expect(res[:current_quarter][:quarter_number]).to eq(3)
     end
   end
+
+  describe '.get_month_info' do
+    it 'maps date to correct month info for 31-day month' do
+      m = described_class.get_month_info('2026-10-11')
+      expect(m[:month_number]).to eq(10)
+      expect(m[:month_name]).to eq('October')
+      expect(m[:year]).to eq(2026)
+      expect(m[:label]).to eq('October 2026')
+      expect(m[:start_date]).to eq('2026-10-01')
+      expect(m[:end_date]).to eq('2026-10-31')
+    end
+
+    it 'maps date to correct month info for 30-day month' do
+      m = described_class.get_month_info('2026-04-15')
+      expect(m[:month_number]).to eq(4)
+      expect(m[:month_name]).to eq('April')
+      expect(m[:start_date]).to eq('2026-04-01')
+      expect(m[:end_date]).to eq('2026-04-30')
+    end
+
+    it 'correctly calculates end date for February in leap year' do
+      m = described_class.get_month_info('2024-02-15')
+      expect(m[:end_date]).to eq('2024-02-29')
+    end
+
+    it 'correctly calculates end date for February in non-leap year' do
+      m = described_class.get_month_info('2026-02-15')
+      expect(m[:end_date]).to eq('2026-02-28')
+    end
+  end
+
+  describe '.date_in_current_month?' do
+    it 'returns in_current_month: true when blog date is in reference month' do
+      res = described_class.date_in_current_month?('2026-10-11', '2026-10-25')
+      expect(res[:in_current_month]).to be true
+      expect(res[:blog_month][:label]).to eq('October 2026')
+      expect(res[:current_month][:label]).to eq('October 2026')
+    end
+
+    it 'returns in_current_month: false when blog date is in a different month of the same quarter' do
+      res = described_class.date_in_current_month?('2026-10-11', '2026-11-15')
+      expect(res[:in_current_month]).to be false
+      expect(res[:blog_month][:month_number]).to eq(10)
+      expect(res[:current_month][:month_number]).to eq(11)
+    end
+
+    it 'returns in_current_month: false when blog date is in a different year' do
+      res = described_class.date_in_current_month?('2025-10-11', '2026-10-11')
+      expect(res[:in_current_month]).to be false
+    end
+  end
 end

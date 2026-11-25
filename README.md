@@ -29,6 +29,10 @@ Supports **Medium** and **DEV Community (`dev.to`)**.
     - **Quarter 4**: January 1 – March 31
   - Out-of-quarter articles fail with `NOT_IN_CURRENT_QUARTER`.
   - Supports optional `reference_date` (`YYYY-MM-DD`) for deterministic testing.
+- **Current Month Verification**:
+  - Automatically verifies whether the blog was created in the current calendar month (e.g. October 2026).
+  - Out-of-month articles fail with `NOT_IN_CURRENT_MONTH`.
+  - Supports optional `reference_date` (`YYYY-MM-DD`) for deterministic testing.
 - **Article Word Count (Length Check)**:
   - Strips HTML tags and markdown formatting to count body words.
   - Verifies minimum word count (default: 500 words). Articles under 500 words fail with `INSUFFICIENT_CONTENT_LENGTH`.

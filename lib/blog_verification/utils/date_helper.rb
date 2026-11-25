@@ -76,6 +76,31 @@ module BlogVerification
           }
         end
 
+        # Parses any accepted date/time representation into UTC Time object
+        def parse_to_utc_time(date_input)
+          return nil if date_input.nil?
+
+          if date_input.is_a?(Time)
+            date_input.utc
+          elsif date_input.is_a?(Date)
+            Time.utc(date_input.year, date_input.month, date_input.day)
+          elsif date_input.is_a?(String)
+            if valid_calendar_date?(date_input)
+              parts = date_input.split('-').map(&:to_i)
+              Time.utc(parts[0], parts[1], parts[2])
+            else
+              begin
+                Time.parse(date_input).utc
+              rescue ArgumentError
+                nil
+              end
+            end
+          elsif date_input.is_a?(Numeric)
+            sec = date_input < 1e11 ? date_input : (date_input / 1000.0)
+            Time.at(sec).utc
+          end
+        end
+
         # Returns quarter details for any date or timestamp in UTC
         # Schedule:
         # - Quarter 1: 1st April to June (months 4, 5, 6)
@@ -83,30 +108,8 @@ module BlogVerification
         # - Quarter 3: 1st October to December (months 10, 11, 12)
         # - Quarter 4: 1st January to March (months 1, 2, 3)
         def get_quarter_info(date_input)
-          return nil if date_input.nil?
-
-          parsed_time = nil
-          if date_input.is_a?(Time)
-            parsed_time = date_input.utc
-          elsif date_input.is_a?(Date)
-            parsed_time = Time.utc(date_input.year, date_input.month, date_input.day)
-          elsif date_input.is_a?(String)
-            if valid_calendar_date?(date_input)
-              parts = date_input.split('-').map(&:to_i)
-              parsed_time = Time.utc(parts[0], parts[1], parts[2])
-            else
-              begin
-                parsed_time = Time.parse(date_input).utc
-              rescue ArgumentError
-                return nil
-              end
-            end
-          elsif date_input.is_a?(Numeric)
-            sec = date_input < 1e11 ? date_input : (date_input / 1000.0)
-            parsed_time = Time.at(sec).utc
-          else
-            return nil
-          end
+          parsed_time = parse_to_utc_time(date_input)
+          return nil if parsed_time.nil?
 
           y = parsed_time.year
           m = parsed_time.month
@@ -159,6 +162,46 @@ module BlogVerification
             in_current_quarter: in_current,
             blog_quarter: blog_quarter,
             current_quarter: current_quarter
+          }
+        end
+
+        # Returns month details for any date or timestamp in UTC
+        def get_month_info(date_input)
+          parsed_time = parse_to_utc_time(date_input)
+          return nil if parsed_time.nil?
+
+          y = parsed_time.year
+          m = parsed_time.month
+          m_name = Date::MONTHNAMES[m]
+          last_day = days_in_month_for(y, m)
+          s_date = format('%04d-%02d-01', y, m)
+          e_date = format('%04d-%02d-%02d', y, m, last_day)
+
+          {
+            month_number: m,
+            month_name: m_name,
+            year: y,
+            label: "#{m_name} #{y}",
+            start_date: s_date,
+            end_date: e_date
+          }
+        end
+
+        # Verifies whether blog creation date falls in the current month
+        def date_in_current_month?(blog_date, reference_date = nil)
+          blog_month = get_month_info(blog_date)
+          current_month = get_month_info(reference_date || Time.now.utc)
+
+          return { in_current_month: false, blog_month: nil, current_month: current_month } if blog_month.nil?
+          return { in_current_month: false, blog_month: blog_month, current_month: nil } if current_month.nil?
+
+          in_current = (blog_month[:month_number] == current_month[:month_number]) &&
+                       (blog_month[:year] == current_month[:year])
+
+          {
+            in_current_month: in_current,
+            blog_month: blog_month,
+            current_month: current_month
           }
         end
       end

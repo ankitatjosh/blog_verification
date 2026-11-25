@@ -37,6 +37,7 @@ RSpec.describe BlogVerification::Services::ValidationService do
     expect(res['data']['checks']['username']['status']).to eq('passed')
     expect(res['data']['checks']['publishedAt']['status']).to eq('passed')
     expect(res['data']['checks']['quarter']['status']).to eq('passed')
+    expect(res['data']['checks']['month']['status']).to eq('passed')
     expect(res['data']['checks']['tags']['status']).to eq('passed')
     expect(res['data']['checks']['topic']['status']).to eq('passed')
     expect(res['data']['checks']['summary']['status']).to eq('passed')
@@ -69,6 +70,18 @@ RSpec.describe BlogVerification::Services::ValidationService do
     expect(res['data']['checks']['quarter']['blogQuarter']).to eq('April - June 2026')
     expect(res['data']['checks']['quarter']['currentQuarter']).to eq('October - December 2026')
     expect(res['errors'].map { |e| e['code'] }).to include('NOT_IN_CURRENT_QUARTER')
+  end
+
+  it 'Month Check: fails when blog date is from another month' do
+    # Blog published in September 2026, current reference is October 2026
+    req = base_request.merge('publishedAt' => '2026-09-15', 'referenceDate' => '2026-10-15')
+    meta = base_metadata.merge('published_at' => '2026-09-15T12:00:00Z')
+    res = service.evaluate(req, meta)
+    expect(res['status']).to eq('invalid')
+    expect(res['data']['checks']['month']['status']).to eq('failed')
+    expect(res['data']['checks']['month']['blogMonth']).to eq('September 2026')
+    expect(res['data']['checks']['month']['currentMonth']).to eq('October 2026')
+    expect(res['errors'].map { |e| e['code'] }).to include('NOT_IN_CURRENT_MONTH')
   end
 
   it 'Content Length Check: fails when blog word count is under 500' do

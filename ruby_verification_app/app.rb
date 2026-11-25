@@ -41,6 +41,7 @@ module BlogVerificationApp
         method(:test_author_mismatch),
         method(:test_publication_date_mismatch),
         method(:test_quarter_mismatch),
+        method(:test_month_mismatch),
         method(:test_content_length_insufficient),
         method(:test_tags_skipped_when_omitted),
         method(:test_tags_mismatch),
@@ -106,6 +107,7 @@ module BlogVerificationApp
       raise "Expected username check passed" unless result['data']['checks']['username']['status'] == 'passed'
       raise "Expected publishedAt check passed" unless result['data']['checks']['publishedAt']['status'] == 'passed'
       raise "Expected quarter check passed" unless result['data']['checks']['quarter']['status'] == 'passed'
+      raise "Expected month check passed" unless result['data']['checks']['month']['status'] == 'passed'
       raise "Expected tags check passed" unless result['data']['checks']['tags']['status'] == 'passed'
       raise "Expected topic check passed" unless result['data']['checks']['topic']['status'] == 'passed'
       raise "Expected summary check passed" unless result['data']['checks']['summary']['status'] == 'passed'
@@ -220,7 +222,39 @@ module BlogVerificationApp
       raise "Expected NOT_IN_CURRENT_QUARTER" unless error_codes.include?('NOT_IN_CURRENT_QUARTER')
     end
 
-    # 6. Insufficient Word Count (< 500 words)
+    # 6. Month Mismatch Check
+    def self.test_month_mismatch
+      service = BlogVerification::Services::ValidationService.new
+      request = {
+        'platform' => 'devto',
+        'url' => 'https://dev.to/janedoe/article-123',
+        'username' => 'janedoe',
+        'publishedAt' => '2026-09-15', # September 2026
+        'topic' => 'Backend Development',
+        'summary' => 'Summary text',
+        'referenceDate' => '2026-10-15' # October 2026
+      }
+
+      metadata = {
+        'canonical_url' => 'https://dev.to/janedoe/article-123',
+        'platform' => 'devto',
+        'author' => { 'username' => 'janedoe' },
+        'published_at' => '2026-09-15T12:00:00Z',
+        'description' => 'Summary text',
+        'word_count' => 600
+      }
+
+      result = service.evaluate(request, metadata)
+      raise "Expected invalid status" unless result['status'] == 'invalid'
+      month_check = result['data']['checks']['month']
+      raise "Expected month check failed" unless month_check['status'] == 'failed'
+      raise "Expected blogMonth to be September 2026" unless month_check['blogMonth'] == 'September 2026'
+      raise "Expected currentMonth to be October 2026" unless month_check['currentMonth'] == 'October 2026'
+      error_codes = result['errors'].map { |e| e['code'] }
+      raise "Expected NOT_IN_CURRENT_MONTH" unless error_codes.include?('NOT_IN_CURRENT_MONTH')
+    end
+
+    # 7. Insufficient Word Count (< 500 words)
     def self.test_content_length_insufficient
       service = BlogVerification::Services::ValidationService.new
       request = {

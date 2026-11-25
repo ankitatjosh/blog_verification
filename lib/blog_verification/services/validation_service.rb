@@ -160,7 +160,54 @@ module BlogVerification
           }
         end
 
-        # 5. Tags check (FR-06 - Optional)
+        # 5. Month verification check
+        if published_at_src && !published_at_src.to_s.strip.empty?
+          month_result = Utils::DateHelper.date_in_current_month?(published_at_src, req['reference_date'])
+          if month_result[:in_current_month]
+            checks['month'] = {
+              'status' => CheckStatus::PASSED,
+              'currentMonth' => month_result[:current_month][:label],
+              'blogMonth' => month_result[:blog_month][:label],
+              'message' => "Blog publication date is in the current month (#{month_result[:current_month][:label]})."
+            }
+          elsif month_result[:blog_month] && month_result[:current_month]
+            checks['month'] = {
+              'status' => CheckStatus::FAILED,
+              'currentMonth' => month_result[:current_month][:label],
+              'blogMonth' => month_result[:blog_month][:label],
+              'message' => "Blog publication date is not in the current month. Expected #{month_result[:current_month][:label]}, but blog was published in #{month_result[:blog_month][:label]}."
+            }
+            errors << {
+              'code' => NOT_IN_CURRENT_MONTH,
+              'field' => 'publishedAt',
+              'message' => "Blog publication date is not in the current month. Expected #{month_result[:current_month][:label]}, but blog was published in #{month_result[:blog_month][:label]}.",
+              'expected' => month_result[:current_month][:label],
+              'actual' => month_result[:blog_month][:label]
+            }
+          else
+            checks['month'] = {
+              'status' => CheckStatus::UNVERIFIED,
+              'message' => 'Month could not be established from source publication date.'
+            }
+            errors << {
+              'code' => SOURCE_METADATA_UNAVAILABLE,
+              'field' => 'month',
+              'message' => 'Month could not be established from source publication date.'
+            }
+          end
+        else
+          checks['month'] = {
+            'status' => CheckStatus::UNVERIFIED,
+            'message' => 'Month could not be verified because source publication date is unavailable.'
+          }
+          errors << {
+            'code' => SOURCE_METADATA_UNAVAILABLE,
+            'field' => 'month',
+            'message' => 'Month could not be verified because source publication date is unavailable.'
+          }
+        end
+
+        # 6. Tags check (FR-06 - Optional)
         has_supplied_tags = req['tags'].is_a?(Array) && !req['tags'].empty?
         if !has_supplied_tags
           checks['tags'] = {
@@ -370,6 +417,7 @@ module BlogVerification
                 'username' => { 'status' => CheckStatus::UNVERIFIED },
                 'publishedAt' => { 'status' => CheckStatus::UNVERIFIED },
                 'quarter' => { 'status' => CheckStatus::UNVERIFIED },
+                'month' => { 'status' => CheckStatus::UNVERIFIED },
                 'tags' => has_supplied_tags ? { 'status' => CheckStatus::UNVERIFIED } : { 'status' => CheckStatus::SKIPPED, 'message' => 'Tag validation was skipped because tags were not provided.' },
                 'topic' => { 'status' => CheckStatus::UNVERIFIED },
                 'summary' => { 'status' => CheckStatus::UNVERIFIED },
@@ -399,6 +447,7 @@ module BlogVerification
               'username' => { 'status' => CheckStatus::UNVERIFIED },
               'publishedAt' => { 'status' => CheckStatus::UNVERIFIED },
               'quarter' => { 'status' => CheckStatus::UNVERIFIED },
+              'month' => { 'status' => CheckStatus::UNVERIFIED },
               'tags' => has_supplied_tags ? { 'status' => CheckStatus::UNVERIFIED } : { 'status' => CheckStatus::SKIPPED, 'message' => 'Tag validation was skipped because tags were not provided.' },
               'topic' => { 'status' => CheckStatus::UNVERIFIED },
               'summary' => { 'status' => CheckStatus::UNVERIFIED },

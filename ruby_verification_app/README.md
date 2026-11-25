@@ -13,6 +13,7 @@ A full Ruby verification application demonstrating and testing the `blog_verific
   - Q2: July – September
   - Q3: October – December
   - Q4: January – March
+- **Month Verification**: Confirms blog is published in the current calendar month.
 - **Article Length Verification**: Confirms content length meets minimum word requirement (>= 500 words).
 - **Optional Tags Validation**: Skips when omitted or empty; compares case-insensitively as sets when provided.
 - **Topic Matching**: Canonical taxonomy mapping and synonym resolution.
